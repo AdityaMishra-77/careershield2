@@ -8,3 +8,6 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+- AI analysis and coach run in server functions in src/lib/analyze.functions.ts via the Lovable AI Gateway with tool-calling for structured reports — keeps keys server-side and output typed.
+- Each report is one row in `analyses` (result + progress as JSON) scoped by RLS to the owner — simple, user-isolated storage.
