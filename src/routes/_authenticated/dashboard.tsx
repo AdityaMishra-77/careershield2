@@ -28,7 +28,7 @@ function Dashboard() {
   async function remove(id: string) {
     if (!confirm("Delete this report and its uploaded data?")) return;
     const { error } = await supabase.from("analyses").delete().eq("id", id);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     qc.invalidateQueries({ queryKey: ["analyses"] });
   }
 

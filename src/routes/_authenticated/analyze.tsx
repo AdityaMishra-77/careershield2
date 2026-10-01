@@ -24,7 +24,7 @@ function readAsDataUrl(f: File) {
   });
 }
 
-function ImagePick({ value, onChange, label }: { value?: string; onChange: (v?: string) => void; label: string }) {
+function ImagePick({ value, onChange, label }: { value: string | undefined; onChange: (v?: string) => void; label: string }) {
   return (
     <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-muted/40 p-6 text-center text-sm text-muted-foreground hover:border-primary/50">
       {value ? <img src={value} alt="" className="max-h-48 rounded-md" /> : <Upload className="h-6 w-6" />}
@@ -36,7 +36,7 @@ function ImagePick({ value, onChange, label }: { value?: string; onChange: (v?: 
         onChange={async (e) => {
           const f = e.target.files?.[0];
           if (!f) return;
-          if (f.size > 5_000_000) return toast.error("Image must be under 5 MB");
+          if (f.size > 5_000_000) { toast.error("Image must be under 5 MB"); return; }
           onChange(await readAsDataUrl(f));
         }}
       />
@@ -63,7 +63,7 @@ function Analyze() {
       resume: resume || undefined,
       resumeImage,
     };
-    if (!payload.url && !payload.text && !payload.image) return toast.error("Add a job link, text or screenshot first.");
+    if (!payload.url && !payload.text && !payload.image) { toast.error("Add a job link, text or screenshot first."); return; }
     setBusy(true);
     try {
       const { id } = await run({ data: payload });
