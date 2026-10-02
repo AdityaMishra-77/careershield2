@@ -67,9 +67,9 @@ async function webSearch(query: string): Promise<SearchHit[]> {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (gateway) {
     if (!lovable) return [];
-    headers.Authorization = `Bearer ${lovable}`;
+    headers["Authorization"] = `Bearer ${lovable}`;
     headers["X-Connection-Api-Key"] = key;
-  } else headers.Authorization = `Bearer ${key}`;
+  } else headers["Authorization"] = `Bearer ${key}`;
   try {
     const r = await fetch(endpoint, { method: "POST", headers, body: JSON.stringify({ query, limit: 5 }) });
     if (!r.ok) {
@@ -293,7 +293,7 @@ export const analyzeCase = createServerFn({ method: "POST" })
     const parts: Array<Record<string, unknown>> = [];
     const domainChecks: Array<Record<string, unknown>> = [];
     for (let i = 0; i < all.length; i++) {
-      const e = all[i];
+      const e = all[i]!;
       const head = `EVIDENCE #${i + 1} (${e.kind}${e.label ? `, ${e.label}` : ""}, submitted ${e.added_at.slice(0, 10)})`;
       if (e.kind === "image") {
         const url = await toDataUrl(supabase, e.path!);
@@ -331,7 +331,7 @@ export const analyzeCase = createServerFn({ method: "POST" })
     }
     const linkHosts = [...new Set((ext.urls ?? []).slice(0, 6).map(hostOf).filter(Boolean))] as string[];
     for (const h of linkHosts) {
-      if (domainChecks.some((c) => c.email_domain === h)) continue;
+      if (domainChecks.some((c) => c["email_domain"] === h)) continue;
       const shortener = SHORTENERS.test(h);
       const f = await fetchUrl(`https://${h}`, 800);
       domainChecks.push({ link_domain: h, url_shortener: shortener, status: f.status, final_url: f.finalUrl, https: f.finalUrl.startsWith("https://"), title: f.title });
@@ -375,7 +375,7 @@ export const analyzeCase = createServerFn({ method: "POST" })
     // Guard against fabricated sources: keep only URLs we actually saw.
     const allowed = new Set<string>([
       ...hits.map((h) => h.url),
-      ...domainChecks.flatMap((c) => [c.final_url, c.homepage_final_url, c.submitted_url].filter(Boolean) as string[]),
+      ...domainChecks.flatMap((c) => [c["final_url"], c["homepage_final_url"], c["submitted_url"]].filter(Boolean) as string[]),
     ]);
     const allowedHosts = new Set([...allowed].map(hostOf));
     const ok = (u: string) => allowed.has(u) || allowedHosts.has(hostOf(u));
