@@ -3,8 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Link2, FileText, Image as ImageIcon, Loader2, ShieldCheck, Upload } from "lucide-react";
-import { analyzeCase } from "@/lib/analyze.functions";
-import { supabase } from "@/integrations/supabase/client";
+import { analyzeJob } from "@/lib/analyze.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -47,7 +46,7 @@ function ImagePick({ value, onChange, label }: { value: string | undefined; onCh
 
 function Analyze() {
   const nav = useNavigate();
-  const run = useServerFn(analyzeCase);
+  const run = useServerFn(analyzeJob);
   const [tab, setTab] = useState("text");
   const [url, setUrl] = useState("");
   const [text, setText] = useState("");
@@ -57,21 +56,17 @@ function Analyze() {
   const [busy, setBusy] = useState(false);
 
   async function submit() {
-    if (!(tab === "url" && url) && !text && !(tab === "image" && image)) { toast.error("Add a job link, text or screenshot first."); return; }
+    const payload = {
+      url: tab === "url" && url ? url : undefined,
+      text: text || undefined,
+      image: tab === "image" ? image : undefined,
+      resume: resume || undefined,
+      resumeImage,
+    };
+    if (!payload.url && !payload.text && !payload.image) { toast.error("Add a job link, text or screenshot first."); return; }
     setBusy(true);
     try {
-      const evidence: any[] = [];
-      if (tab === "image" && image) {
-        const { data: u } = await supabase.auth.getUser();
-        const blob = await (await fetch(image)).blob();
-        const path = `${u.user!.id}/${crypto.randomUUID()}`;
-        const { error } = await supabase.storage.from("evidence").upload(path, blob, { contentType: blob.type });
-        if (error) throw error;
-        evidence.push({ kind: "image", path });
-      }
-      if (tab === "url" && url) evidence.push({ kind: "url", content: url });
-      if (text) evidence.push({ kind: "text", content: text });
-      const { id } = await run({ data: { evidence, resume: resume || undefined, resumeImage } });
+      const { id } = await run({ data: payload });
       nav({ to: "/report/$id", params: { id } });
     } catch (e: any) {
       toast.error(e.message ?? "Analysis failed");
