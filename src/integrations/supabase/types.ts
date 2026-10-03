@@ -16,39 +16,83 @@ export type Database = {
     Tables: {
       analyses: {
         Row: {
+          case_number: number
           company: string | null
           created_at: string
+          evidence: Json
           id: string
           job_input: string | null
           progress: Json
           result: Json
           resume_text: string | null
           title: string
+          updated_at: string
           user_id: string
         }
         Insert: {
+          case_number?: number
           company?: string | null
           created_at?: string
+          evidence?: Json
           id?: string
           job_input?: string | null
           progress?: Json
           result?: Json
           resume_text?: string | null
           title?: string
+          updated_at?: string
           user_id: string
         }
         Update: {
+          case_number?: number
           company?: string | null
           created_at?: string
+          evidence?: Json
           id?: string
           job_input?: string | null
           progress?: Json
           result?: Json
           resume_text?: string | null
           title?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
+      }
+      coach_messages: {
+        Row: {
+          analysis_id: string | null
+          content: string
+          created_at: string
+          id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          analysis_id?: string | null
+          content: string
+          created_at?: string
+          id?: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          analysis_id?: string | null
+          content?: string
+          created_at?: string
+          id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coach_messages_analysis_id_fkey"
+            columns: ["analysis_id"]
+            isOneToOne: false
+            referencedRelation: "analyses"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
