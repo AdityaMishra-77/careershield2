@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { z } from "zod";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -12,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const Route = createFileRoute("/_authenticated/analyze")({
   head: () => ({ meta: [{ title: "Analyze a job — CareerShield AI" }, { name: "description", content: "Submit a job and your resume for analysis." }] }),
+  validateSearch: (s) => z.object({ caseId: z.string().uuid().optional() }).parse(s),
   component: Analyze,
 });
 
@@ -46,6 +48,7 @@ function ImagePick({ value, onChange, label }: { value: string | undefined; onCh
 
 function Analyze() {
   const nav = useNavigate();
+  const { caseId } = Route.useSearch();
   const run = useServerFn(analyzeJob);
   const [tab, setTab] = useState("text");
   const [url, setUrl] = useState("");
@@ -62,6 +65,7 @@ function Analyze() {
       images: tab === "image" && images.length ? images : undefined,
       resume: resume || undefined,
       resumeImage,
+      caseId,
     };
     if (!payload.url && !payload.text && !payload.images) { toast.error("Add a job link, text or screenshot first."); return; }
     setBusy(true);
@@ -85,6 +89,7 @@ function Analyze() {
     <div className="mx-auto max-w-3xl">
       <h1 className="text-3xl font-bold">Analyze an opportunity</h1>
       <p className="text-muted-foreground">Job posts, recruiter messages and offer letters all work.</p>
+      {caseId && <p className="mt-3 rounded-lg border border-primary/40 bg-primary/10 px-3 py-2 text-sm">Adding new evidence to an existing case — the report will be re-analyzed using all previous and new evidence.</p>}
 
       <section className="mt-8 rounded-2xl border border-border bg-card p-6">
         <h2 className="font-semibold">1. The opportunity</h2>
