@@ -18,9 +18,9 @@ export function ProfileMenu({ user }: { user: User }) {
   const nav = useNavigate();
   const qc = useQueryClient();
   const meta = (user.user_metadata ?? {}) as Record<string, string | undefined>;
-  const name = meta.full_name || meta.name || user.email?.split("@")[0] || "Account";
+  const name = meta["full_name"] || meta["name"] || user.email?.split("@")[0] || "Account";
   const email = user.email ?? "";
-  const avatar = meta.avatar_url || meta.picture;
+  const avatar = meta["avatar_url"] || meta["picture"];
   const initials = name.split(/\s+/).map((p) => p[0]).slice(0, 2).join("").toUpperCase();
 
   async function openCoach() {
