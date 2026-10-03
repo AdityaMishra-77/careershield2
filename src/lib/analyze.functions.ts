@@ -159,6 +159,52 @@ const reportSchema = {
       },
     },
     next_actions: { type: "array", items: { type: "string" } },
+    case_evidence: {
+      type: "array",
+      description: "One entry per piece of evidence in this case (previous + new), numbered as given",
+      items: {
+        type: "object",
+        properties: {
+          number: { type: "integer" },
+          kind: { type: "string", description: "e.g. Email, Job Post, Recruiter Profile, WhatsApp, Payment Request, Offer Letter, Website, Text" },
+          extracted_text: { type: "string", description: "Faithful OCR/extracted text of this evidence (max ~1500 chars)" },
+        },
+        required: ["number", "kind", "extracted_text"],
+      },
+    },
+    entities: {
+      type: "array",
+      description: "Entities combined across ALL evidence, each with its source evidence numbers",
+      items: {
+        type: "object",
+        properties: {
+          field: { type: "string", description: "e.g. Company name, Recruiter name, Recruiter email, Sender domain, Job title, Salary/stipend, Application URL, Website, Phone, University, Payment amount, Payment reason, Registration fee, Training fee, Security deposit, Certificate fee, Processing fee, Interview fee, Other financial request, Personal info requested, Date, Deadline, Selection claim, Credit/certification claim, Referral code" },
+          value: { type: "string" },
+          sources: { type: "array", items: { type: "integer" } },
+        },
+        required: ["field", "value", "sources"],
+      },
+    },
+    conflicts: {
+      type: "array",
+      description: "Fields where different evidence items give different values",
+      items: {
+        type: "object",
+        properties: {
+          field: { type: "string" },
+          message: { type: "string", description: 'e.g. "Conflicting university information detected."' },
+          values: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: { value: { type: "string" }, source: { type: "integer" } },
+              required: ["value", "source"],
+            },
+          },
+        },
+        required: ["field", "message", "values"],
+      },
+    },
   },
   required: ["job", "trust", "candidate", "skills", "roadmap", "next_actions"],
 };
@@ -173,6 +219,8 @@ Rules:
 - Priority: required gaps that others depend on = Critical; other required gaps = High; partial = Medium; preferred gaps = Preferred; strong matches = None.
 - Roadmap must be prerequisite-aware and cover only gaps/partials, focused on this job.
 - If no resume is provided, leave candidate skills empty and mark all skills as gap.
+- All evidence items belong to ONE case. Combine information across ALL of them (e.g. a company name in an email signature of Evidence #2 identifies the company for the whole case). Only say "Company name not identified in submitted evidence" if it appears in none.
+- Fill case_evidence (one entry per evidence item, keeping the given numbers), entities (with source evidence numbers) and conflicts (never silently pick one of differing values).
 - Use "" for unknown string fields. Only include offer_terms if the input looks like an offer letter.`;
 
 export const analyzeJob = createServerFn({ method: "POST" })
@@ -186,6 +234,7 @@ export const analyzeJob = createServerFn({ method: "POST" })
         images: z.array(z.string().max(8_000_000)).max(10).optional(),
         resume: z.string().max(30000).optional(),
         resumeImage: z.string().max(8_000_000).optional(),
+        caseId: z.string().uuid().optional(),
       })
       .parse(d),
   )
@@ -193,8 +242,29 @@ export const analyzeJob = createServerFn({ method: "POST" })
     const images = [...(data.image ? [data.image] : []), ...(data.images ?? [])];
     if (!data.url && !data.text && images.length === 0) throw new Error("Provide a job URL, text or screenshot.");
 
+    let prev: { result: any; job_input: string | null; resume_text: string | null } | null = null;
+    if (data.caseId) {
+      const { data: p, error: pe } = await context.supabase
+        .from("analyses")
+        .select("result, job_input, resume_text")
+        .eq("id", data.caseId)
+        .single();
+      if (pe || !p) throw new Error("Case not found");
+      prev = p as any;
+    }
+    const prevEvidence: Array<{ number: number; kind: string; extracted_text: string }> = prev?.result?.case_evidence ?? [];
+    const offset = prevEvidence.length;
+
     const parts: Array<Record<string, unknown>> = [];
     let jobInput = "";
+    if (prev) {
+      parts.push({
+        type: "text",
+        text: `EXISTING CASE — PREVIOUS EVIDENCE (Evidence #1–#${offset}), already extracted:\n${prevEvidence
+          .map((e) => `Evidence #${e.number} — ${e.kind}:\n${e.extracted_text}`)
+          .join("\n\n") || prev.job_input || ""}\n\nNEW EVIDENCE below is numbered starting at #${offset + 1}. Re-analyze using ALL previous + new evidence as one case.`,
+      });
+    }
     if (data.url) {
       const f = await fetchUrl(data.url);
       jobInput += `URL: ${data.url}\n`;
@@ -209,7 +279,7 @@ export const analyzeJob = createServerFn({ method: "POST" })
     }
     if (images.length === 1) {
       jobInput += jobInput ? "\n[+ screenshot]" : "[screenshot]";
-      parts.push({ type: "text", text: "JOB SCREENSHOT (read text via OCR):" });
+      parts.push({ type: "text", text: `JOB SCREENSHOT — Evidence #${offset + 1} (read text via OCR):` });
       parts.push({ type: "image_url", image_url: { url: images[0] } });
     } else if (images.length > 1) {
       const tag = `[${images.length} screenshots]`;
@@ -219,16 +289,18 @@ export const analyzeJob = createServerFn({ method: "POST" })
         text: `JOB EVIDENCE SCREENSHOTS — ${images.length} images that ALL belong to ONE SINGLE recruitment case (e.g. job post, recruiter profile, emails/chats, payment requests, application website). Read text from every image via OCR, then combine and cross-correlate the details (names, emails, domains, company, salary, links, requests) into one evidence set and produce ONE report. Note consistencies or contradictions between images as evidence signals, referencing the image number.`,
       });
       images.forEach((img, i) => {
-        parts.push({ type: "text", text: `Image ${i + 1} of ${images.length}:` });
+        parts.push({ type: "text", text: `Image ${i + 1} of ${images.length} — Evidence #${offset + i + 1}:` });
         parts.push({ type: "image_url", image_url: { url: img } });
       });
     }
-    if (data.resume) parts.push({ type: "text", text: `CANDIDATE RESUME:\n${data.resume}` });
+    const resumeText = data.resume || prev?.resume_text || undefined;
+    if (resumeText) parts.push({ type: "text", text: `CANDIDATE RESUME:\n${resumeText}` });
+    if (false) parts.push({ type: "text", text: `CANDIDATE RESUME:\n${data.resume}` });
     if (data.resumeImage) {
       parts.push({ type: "text", text: "CANDIDATE RESUME (image):" });
       parts.push({ type: "image_url", image_url: { url: data.resumeImage } });
     }
-    if (!data.resume && !data.resumeImage) parts.push({ type: "text", text: "No resume provided." });
+    if (!resumeText && !data.resumeImage) parts.push({ type: "text", text: "No resume provided." });
 
     const json = await callAI({
       messages: [
@@ -246,6 +318,24 @@ export const analyzeJob = createServerFn({ method: "POST" })
     const args = json?.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
     if (!args) throw new Error("The AI could not produce a report. Please try again with more detail.");
     const result = JSON.parse(args);
+    result.case_id =
+      prev?.result?.case_id ||
+      "CS-" + Array.from(crypto.getRandomValues(new Uint8Array(4)), (b) => b.toString(16).padStart(2, "0")).join("").toUpperCase().slice(0, 6);
+
+    if (prev && data.caseId) {
+      const { error: ue } = await context.supabase
+        .from("analyses")
+        .update({
+          title: result.job?.title || "Untitled job",
+          company: result.job?.company || null,
+          job_input: `${prev.job_input ?? ""}\n${jobInput}`.slice(0, 4000),
+          resume_text: resumeText?.slice(0, 30000) ?? null,
+          result,
+        })
+        .eq("id", data.caseId);
+      if (ue) throw new Error(ue.message);
+      return { id: data.caseId };
+    }
 
     const { data: row, error } = await context.supabase
       .from("analyses")

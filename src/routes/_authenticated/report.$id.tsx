@@ -107,6 +107,33 @@ function Report() {
         )}
       </header>
 
+      {(r.case_evidence?.length > 0 || r.entities?.length > 0 || r.conflicts?.length > 0) && (
+        <Card title={`Case ${r.case_id ?? ""} — combined evidence`}>
+          {r.case_evidence?.length > 0 && (
+            <ul className="mb-4 space-y-1 text-sm">
+              {r.case_evidence.map((e: any) => <li key={e.number}><b>Evidence #{e.number}</b> — {e.kind}</li>)}
+            </ul>
+          )}
+          {r.conflicts?.length > 0 && (
+            <ul className="mb-4 space-y-2">
+              {r.conflicts.map((c: any, i: number) => (
+                <li key={i} className="flex gap-2 text-sm"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
+                  <span><b>{c.message}</b> {(c.values ?? []).map((v: any) => `${v.value} (Evidence #${v.source})`).join(" vs ")}</span></li>
+              ))}
+            </ul>
+          )}
+          {r.entities?.length > 0 && (
+            <dl className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
+              {r.entities.map((e: any, i: number) => (
+                <div key={i} className="min-w-0"><dt className="text-muted-foreground">{e.field}</dt>
+                  <dd>{e.value} <span className="text-xs text-muted-foreground">· Source: {(e.sources ?? []).map((n: number) => `Evidence #${n}`).join(", ")}</span></dd></div>
+              ))}
+            </dl>
+          )}
+          <Link to="/analyze" search={{ caseId: id }} className="no-print mt-4 inline-block text-sm text-primary hover:underline">+ Add more evidence to this case</Link>
+        </Card>
+      )}
+
       <div className="grid gap-5 lg:grid-cols-2">
         <Card title="Trust evidence">
           <p className="mb-4 text-sm text-muted-foreground">{r.trust?.summary}</p>
