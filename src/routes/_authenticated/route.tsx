@@ -1,10 +1,8 @@
 import { createFileRoute, Outlet, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { LogOut } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
 import { Brand } from "@/components/Brand";
-import { Button } from "@/components/ui/button";
+import { ProfileMenu } from "@/components/ProfileMenu";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -33,9 +31,7 @@ function Layout() {
             <Link to="/analyze" className="rounded-md px-3 py-1.5 text-muted-foreground hover:text-foreground" activeProps={{ className: "text-foreground bg-secondary" }}>
               Analyze
             </Link>
-            <Button variant="ghost" size="icon" aria-label="Sign out" onClick={() => supabase.auth.signOut()}>
-              <LogOut className="h-4 w-4" />
-            </Button>
+            <ProfileMenu user={session.user} />
           </nav>
         </div>
       </header>

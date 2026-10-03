@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Link2, FileText, Image as ImageIcon, Loader2, ShieldCheck, Upload } from "lucide-react";
+import { Link2, FileText, Image as ImageIcon, Loader2, ShieldCheck, Upload, X } from "lucide-react";
 import { analyzeJob } from "@/lib/analyze.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,7 +50,7 @@ function Analyze() {
   const [tab, setTab] = useState("text");
   const [url, setUrl] = useState("");
   const [text, setText] = useState("");
-  const [image, setImage] = useState<string>();
+  const [images, setImages] = useState<string[]>([]);
   const [resume, setResume] = useState("");
   const [resumeImage, setResumeImage] = useState<string>();
   const [busy, setBusy] = useState(false);
@@ -59,11 +59,11 @@ function Analyze() {
     const payload = {
       url: tab === "url" && url ? url : undefined,
       text: text || undefined,
-      image: tab === "image" ? image : undefined,
+      images: tab === "image" && images.length ? images : undefined,
       resume: resume || undefined,
       resumeImage,
     };
-    if (!payload.url && !payload.text && !payload.image) { toast.error("Add a job link, text or screenshot first."); return; }
+    if (!payload.url && !payload.text && !payload.images) { toast.error("Add a job link, text or screenshot first."); return; }
     setBusy(true);
     try {
       const { id } = await run({ data: payload });
@@ -98,8 +98,52 @@ function Analyze() {
             <Input placeholder="https://company.com/careers/job/123" value={url} onChange={(e) => setUrl(e.target.value)} />
             <p className="text-xs text-muted-foreground">Some sites (like LinkedIn) hide content behind login — paste the description below too for best results.</p>
           </TabsContent>
-          <TabsContent value="image">
-            <ImagePick value={image} onChange={setImage} label="Upload a screenshot of the job or message" />
+          <TabsContent value="image" className="space-y-3">
+            {images.length > 0 && (
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {images.map((src, i) => (
+                  <div key={i} className="relative overflow-hidden rounded-xl border border-border bg-muted/40">
+                    <img src={src} alt={`Evidence ${i + 1}`} className="h-32 w-full object-cover" />
+                    <span className="absolute left-1.5 top-1.5 rounded bg-background/90 px-1.5 text-xs">Image {i + 1}</span>
+                    <button
+                      type="button"
+                      aria-label={`Remove image ${i + 1}`}
+                      className="absolute right-1.5 top-1.5 rounded-full bg-background/90 p-1 hover:text-destructive"
+                      onClick={() => setImages((p) => p.filter((_, j) => j !== i))}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {images.length < 10 && (
+              <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-muted/40 p-6 text-center text-sm text-muted-foreground hover:border-primary/50">
+                <Upload className="h-6 w-6" />
+                {images.length ? "Add more images to this case" : "Upload screenshots of the job, recruiter, emails, payment requests… (multiple allowed)"}
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={async (e) => {
+                    const files = Array.from(e.target.files ?? []);
+                    e.target.value = "";
+                    const ok = files.filter((f) => {
+                      if (f.size > 5_000_000) { toast.error(`${f.name} is over 5 MB`); return false; }
+                      return true;
+                    });
+                    const urls = await Promise.all(ok.map(readAsDataUrl));
+                    setImages((p) => {
+                      const next = [...p, ...urls];
+                      if (next.length > 10) toast.error("Up to 10 images per case");
+                      return next.slice(0, 10);
+                    });
+                  }}
+                />
+              </label>
+            )}
+            <p className="text-xs text-muted-foreground">All images are analyzed together as one case.</p>
           </TabsContent>
         </Tabs>
         <Textarea

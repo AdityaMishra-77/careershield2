@@ -219,7 +219,9 @@ function Report() {
         )}
       </Card>
 
-      <Coach analysisId={id} />
+      <div id="coach" className="scroll-mt-20">
+        <Coach analysisId={id} />
+      </div>
     </div>
   );
 }
