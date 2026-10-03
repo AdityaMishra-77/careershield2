@@ -183,13 +183,15 @@ export const analyzeJob = createServerFn({ method: "POST" })
         url: z.string().max(2000).optional(),
         text: z.string().max(30000).optional(),
         image: z.string().max(8_000_000).optional(),
+        images: z.array(z.string().max(8_000_000)).max(10).optional(),
         resume: z.string().max(30000).optional(),
         resumeImage: z.string().max(8_000_000).optional(),
       })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
-    if (!data.url && !data.text && !data.image) throw new Error("Provide a job URL, text or screenshot.");
+    const images = [...(data.image ? [data.image] : []), ...(data.images ?? [])];
+    if (!data.url && !data.text && images.length === 0) throw new Error("Provide a job URL, text or screenshot.");
 
     const parts: Array<Record<string, unknown>> = [];
     let jobInput = "";
@@ -205,10 +207,21 @@ export const analyzeJob = createServerFn({ method: "POST" })
       jobInput += data.text.slice(0, 2000);
       parts.push({ type: "text", text: `JOB DESCRIPTION / RECRUITER MESSAGE / OFFER LETTER TEXT:\n${data.text}` });
     }
-    if (data.image) {
+    if (images.length === 1) {
       jobInput += jobInput ? "\n[+ screenshot]" : "[screenshot]";
       parts.push({ type: "text", text: "JOB SCREENSHOT (read text via OCR):" });
-      parts.push({ type: "image_url", image_url: { url: data.image } });
+      parts.push({ type: "image_url", image_url: { url: images[0] } });
+    } else if (images.length > 1) {
+      const tag = `[${images.length} screenshots]`;
+      jobInput += jobInput ? `\n[+ ${images.length} screenshots]` : tag;
+      parts.push({
+        type: "text",
+        text: `JOB EVIDENCE SCREENSHOTS — ${images.length} images that ALL belong to ONE SINGLE recruitment case (e.g. job post, recruiter profile, emails/chats, payment requests, application website). Read text from every image via OCR, then combine and cross-correlate the details (names, emails, domains, company, salary, links, requests) into one evidence set and produce ONE report. Note consistencies or contradictions between images as evidence signals, referencing the image number.`,
+      });
+      images.forEach((img, i) => {
+        parts.push({ type: "text", text: `Image ${i + 1} of ${images.length}:` });
+        parts.push({ type: "image_url", image_url: { url: img } });
+      });
     }
     if (data.resume) parts.push({ type: "text", text: `CANDIDATE RESUME:\n${data.resume}` });
     if (data.resumeImage) {
