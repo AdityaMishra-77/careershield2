@@ -159,6 +159,16 @@ const reportSchema = {
       },
     },
     next_actions: { type: "array", items: { type: "string" } },
+    payment_status: {
+      type: "object",
+      description: "Payment request state across the complete case evidence timeline",
+      properties: {
+        state: { type: "string", enum: ["Payment Request Detected", "Deferred Payment Request Detected", "No Payment Request Detected In Submitted Evidence"] },
+        detail: { type: "string" },
+        sources: { type: "array", items: { type: "integer" } },
+      },
+      required: ["state", "detail", "sources"],
+    },
     case_evidence: {
       type: "array",
       description: "One entry per piece of evidence in this case (previous + new), numbered as given",
@@ -220,6 +230,8 @@ Rules:
 - Roadmap must be prerequisite-aware and cover only gaps/partials, focused on this job.
 - If no resume is provided, leave candidate skills empty and mark all skills as gap.
 - All evidence items belong to ONE case. Combine information across ALL of them (e.g. a company name in an email signature of Evidence #2 identifies the company for the whole case). Only say "Company name not identified in submitted evidence" if it appears in none.
+- Never call the employer "Anonymous" because one image lacks a name. Search ALL evidence first; never guess or invent a company. If no evidence names it, set job.company to "" and state "Company name not identified in submitted evidence". If evidence items name different companies, add a conflict with message "Conflicting company information detected." and the evidence numbers. Always add a "Company name" entity with its source evidence.
+- Payment timeline: order evidence by recruitment stage (application/initial outreach -> selection/progress -> later messages). If the earliest recruitment evidence has no payment request but later evidence does, set payment_status.state "Deferred Payment Request Detected" and add a trust.evidence item with signal "Deferred Payment Request", level "risk", category "offer", detail "A payment request was detected in later communication after the initial recruitment/application stage." citing evidence numbers. If a payment request exists otherwise, use "Payment Request Detected". If none, use "No Payment Request Detected In Submitted Evidence" with detail "No payment request was detected in the submitted evidence. CareerShield cannot determine whether a later payment request may occur." This does NOT mean the opportunity is legitimate. Never predict future scam events as fact.
 - Fill case_evidence (one entry per evidence item, keeping the given numbers), entities (with source evidence numbers) and conflicts (never silently pick one of differing values).
 - Use "" for unknown string fields. Only include offer_terms if the input looks like an offer letter.`;
 

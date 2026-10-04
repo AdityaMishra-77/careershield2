@@ -93,7 +93,7 @@ function Report() {
       <header className="rounded-2xl border border-border bg-hero bg-card p-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-sm text-primary">{job.company || "Unknown company"}</p>
+            <p className="text-sm text-primary">{job.company || (r.case_evidence ? "Company name not identified in submitted evidence" : "Unknown company")}</p>
             <h1 className="text-3xl font-bold">{job.title || data.title}</h1>
           </div>
           <TrustBadge status={r.trust?.status} className="text-sm" />
@@ -107,12 +107,18 @@ function Report() {
         )}
       </header>
 
-      {(r.case_evidence?.length > 0 || r.entities?.length > 0 || r.conflicts?.length > 0) && (
+      {(r.case_evidence?.length > 0 || r.entities?.length > 0 || r.conflicts?.length > 0 || r.payment_status) && (
         <Card title={`Case ${r.case_id ?? ""} — combined evidence`}>
           {r.case_evidence?.length > 0 && (
             <ul className="mb-4 space-y-1 text-sm">
               {r.case_evidence.map((e: any) => <li key={e.number}><b>Evidence #{e.number}</b> — {e.kind}</li>)}
             </ul>
+          )}
+          {r.payment_status && (
+            <p className="mb-4 flex gap-2 text-sm">
+              {r.payment_status.state === "No Payment Request Detected In Submitted Evidence" ? <MinusCircle className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" /> : <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />}
+              <span><b>{r.payment_status.state}.</b> {r.payment_status.detail}{r.payment_status.sources?.length > 0 && <span className="text-xs text-muted-foreground"> · Source: {r.payment_status.sources.map((n: number) => `Evidence #${n}`).join(", ")}</span>}</span>
+            </p>
           )}
           {r.conflicts?.length > 0 && (
             <ul className="mb-4 space-y-2">
