@@ -295,7 +295,6 @@ export const analyzeJob = createServerFn({ method: "POST" })
     }
     const resumeText = data.resume || prev?.resume_text || undefined;
     if (resumeText) parts.push({ type: "text", text: `CANDIDATE RESUME:\n${resumeText}` });
-    if (false) parts.push({ type: "text", text: `CANDIDATE RESUME:\n${data.resume}` });
     if (data.resumeImage) {
       parts.push({ type: "text", text: "CANDIDATE RESUME (image):" });
       parts.push({ type: "image_url", image_url: { url: data.resumeImage } });
