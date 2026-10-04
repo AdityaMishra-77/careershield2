@@ -165,9 +165,25 @@ const reportSchema = {
       properties: {
         state: { type: "string", enum: ["Payment Request Detected", "Deferred Payment Request Detected", "No Payment Request Detected In Submitted Evidence"] },
         detail: { type: "string" },
+        amount: { type: "string", description: "Exact amount as shown in evidence, or \"\"" },
+        reason: { type: "string", description: "Stated reason e.g. Registration fee, or \"\"" },
         sources: { type: "array", items: { type: "integer" } },
       },
       required: ["state", "detail", "sources"],
+    },
+    timeline: {
+      type: "array",
+      description: "Recruitment Evidence Timeline built ONLY from events observed in the evidence, in chronological/stage order. Never invent dates, events, or future events.",
+      items: {
+        type: "object",
+        properties: {
+          date: { type: "string", description: "Date exactly as present in evidence, or \"\" if none shown. Never invent." },
+          stage: { type: "string", enum: ["Initial Outreach", "Application", "Interview / Selection", "Offer / Confirmation", "Payment Request", "Additional Payment Request", "Other"] },
+          event: { type: "string" },
+          sources: { type: "array", items: { type: "integer" } },
+        },
+        required: ["date", "stage", "event", "sources"],
+      },
     },
     case_evidence: {
       type: "array",
@@ -233,6 +249,9 @@ Rules:
 - Never call the employer "Anonymous" because one image lacks a name. Search ALL evidence first; never guess or invent a company. If no evidence names it, set job.company to "" and state "Company name not identified in submitted evidence". If evidence items name different companies, add a conflict with message "Conflicting company information detected." and the evidence numbers. Always add a "Company name" entity with its source evidence.
 - Payment timeline: order evidence by recruitment stage (application/initial outreach -> selection/progress -> later messages). If the earliest recruitment evidence has no payment request but later evidence does, set payment_status.state "Deferred Payment Request Detected" and add a trust.evidence item with signal "Deferred Payment Request", level "risk", category "offer", detail "A payment request was detected in later communication after the initial recruitment/application stage." citing evidence numbers. If a payment request exists otherwise, use "Payment Request Detected". If none, use "No Payment Request Detected In Submitted Evidence" with detail "No payment request was detected in the submitted evidence. CareerShield cannot determine whether a later payment request may occur." This does NOT mean the opportunity is legitimate. Never predict future scam events as fact.
 - Fill case_evidence (one entry per evidence item, keeping the given numbers), entities (with source evidence numbers) and conflicts (never silently pick one of differing values).
+- When a payment is requested, fill payment_status.amount and payment_status.reason exactly as stated in evidence.
+- Fill timeline from ALL case evidence (previous + new) using only events actually present. Use dates only if shown in the evidence, else "". Never add predicted, hypothetical or future events. A second, separate fee request is "Additional Payment Request".
+- Strictly separate observed evidence from possible future events: never write that a recruiter "will" ask for money or that something "will become" a scam anywhere in the report.
 - Use "" for unknown string fields. Only include offer_terms if the input looks like an offer letter.`;
 
 export const analyzeJob = createServerFn({ method: "POST" })
