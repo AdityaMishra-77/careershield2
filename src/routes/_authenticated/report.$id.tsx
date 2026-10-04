@@ -107,7 +107,7 @@ function Report() {
         )}
       </header>
 
-      {(r.case_evidence?.length > 0 || r.entities?.length > 0 || r.conflicts?.length > 0 || r.payment_status) && (
+      {(r.case_evidence?.length > 0 || r.entities?.length > 0 || r.conflicts?.length > 0 || r.payment_status || r.timeline?.length > 0) && (
         <Card title={`Case ${r.case_id ?? ""} — combined evidence`}>
           {r.case_evidence?.length > 0 && (
             <ul className="mb-4 space-y-1 text-sm">
@@ -117,8 +117,24 @@ function Report() {
           {r.payment_status && (
             <p className="mb-4 flex gap-2 text-sm">
               {r.payment_status.state === "No Payment Request Detected In Submitted Evidence" ? <MinusCircle className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" /> : <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />}
-              <span><b>{r.payment_status.state}.</b> {r.payment_status.detail}{r.payment_status.sources?.length > 0 && <span className="text-xs text-muted-foreground"> · Source: {r.payment_status.sources.map((n: number) => `Evidence #${n}`).join(", ")}</span>}</span>
+              <span><b>{r.payment_status.state}.</b> {r.payment_status.detail}
+                {r.payment_status.amount && <> <b>Payment:</b> {r.payment_status.amount}.</>}
+                {r.payment_status.reason && <> <b>Reason:</b> {r.payment_status.reason}.</>}
+                {r.payment_status.sources?.length > 0 && <span className="text-xs text-muted-foreground"> · Source: {r.payment_status.sources.map((n: number) => `Evidence #${n}`).join(", ")}</span>}</span>
             </p>
+          )}
+          {r.timeline?.length > 0 && (
+            <div className="mb-4">
+              <h3 className="mb-2 text-sm font-semibold">Recruitment evidence timeline</h3>
+              <ol className="space-y-3 border-l border-border pl-4">
+                {r.timeline.map((t: any, i: number) => (
+                  <li key={i} className="text-sm">
+                    <p className="text-xs text-muted-foreground">{t.date || "Date not shown in evidence"} · {t.stage}</p>
+                    <p>{t.event} <span className="text-xs text-muted-foreground">· Source: {(t.sources ?? []).map((n: number) => `Evidence #${n}`).join(", ")}</span></p>
+                  </li>
+                ))}
+              </ol>
+            </div>
           )}
           {r.conflicts?.length > 0 && (
             <ul className="mb-4 space-y-2">
