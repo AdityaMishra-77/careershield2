@@ -58,11 +58,11 @@ async function ddgSearch(q: string) {
     const re = /<a[^>]+class="result__a"[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?class="result__snippet"[^>]*>([\s\S]*?)<\/a>/g;
     let m;
     while ((m = re.exec(html)) && out.length < 5) {
-      let url = m[1];
+      let url = m[1] ?? "";
       const u = url.match(/uddg=([^&]+)/);
-      if (u) url = decodeURIComponent(u[1]);
+      if (u?.[1]) url = decodeURIComponent(u[1]);
       if (!/^https?:\/\//.test(url)) continue;
-      out.push({ url, title: stripHtml(m[2]).slice(0, 200), snippet: stripHtml(m[3]).slice(0, 300) });
+      out.push({ url, title: stripHtml(m[2] ?? "").slice(0, 200), snippet: stripHtml(m[3] ?? "").slice(0, 300) });
     }
     return out;
   } catch {
