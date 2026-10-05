@@ -152,6 +152,31 @@ function Report() {
               ))}
             </dl>
           )}
+          {r.web_verification && (
+            <div className="mt-4">
+              <h3 className="mb-2 text-sm font-semibold">Web verification</h3>
+              {r.web_verification.note && <p className="text-sm text-muted-foreground">{r.web_verification.note}</p>}
+              <ul className="space-y-2">
+                {(r.web_verification.findings ?? []).map((f: any, i: number) => (
+                  <li key={i} className="text-sm">
+                    <span className="text-xs font-semibold text-primary">{f.status}</span> · <b>{f.check}:</b> {f.finding}
+                    {f.source_url && <span className="block truncate text-xs text-muted-foreground">Source: {f.source_title || new URL(f.source_url).hostname} — <a href={f.source_url} target="_blank" rel="noreferrer noopener" className="underline">{f.source_url}</a></span>}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {r.analysis_history?.length > 1 && (
+            <div className="mt-4 text-sm">
+              <h3 className="mb-2 font-semibold">Evidence history</h3>
+              <p className="mb-1 text-primary">New evidence added. CareerShield re-evaluated this case using {r.analysis_history[r.analysis_history.length - 1].evidence_count} pieces of evidence.</p>
+              <ul className="space-y-1 text-xs text-muted-foreground">
+                {r.analysis_history.map((h: any, i: number) => (
+                  <li key={i}>{new Date(h.at).toLocaleString()} — {h.evidence_count} evidence item(s){i > 0 && h.added > 0 ? ` (+${h.added} new)` : ""}{h.risk ? ` · ${h.risk}` : ""}</li>
+                ))}
+              </ul>
+            </div>
+          )}
           <Link to="/analyze" search={{ caseId: id }} className="no-print mt-4 inline-block text-sm text-primary hover:underline">+ Add more evidence to this case</Link>
         </Card>
       )}
