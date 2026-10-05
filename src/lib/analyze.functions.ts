@@ -45,6 +45,119 @@ async function fetchUrl(url: string) {
   }
 }
 
+
+// ---- Web verification: only real fetched data; AI may only classify gathered results ----
+async function ddgSearch(q: string) {
+  try {
+    const r = await fetch("https://html.duckduckgo.com/html/?q=" + encodeURIComponent(q), {
+      headers: { "User-Agent": "Mozilla/5.0 (CareerShield verification bot)" },
+    });
+    if (!r.ok) return [];
+    const html = await r.text();
+    const out: Array<{ title: string; url: string; snippet: string }> = [];
+    const re = /<a[^>]+class="result__a"[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?class="result__snippet"[^>]*>([\s\S]*?)<\/a>/g;
+    let m;
+    while ((m = re.exec(html)) && out.length < 5) {
+      let url = m[1] ?? "";
+      const u = url.match(/uddg=([^&]+)/);
+      if (u?.[1]) url = decodeURIComponent(u[1]);
+      if (!/^https?:\/\//.test(url)) continue;
+      out.push({ url, title: stripHtml(m[2] ?? "").slice(0, 200), snippet: stripHtml(m[3] ?? "").slice(0, 300) });
+    }
+    return out;
+  } catch {
+    return [];
+  }
+}
+
+const FREE_MAIL = /^(gmail|yahoo|outlook|hotmail|live|icloud|proton|protonmail|rediffmail|aol|zoho|yandex|mail)\./i;
+
+async function webVerify(result: any) {
+  const ents: Array<{ field: string; value: string }> = result.entities ?? [];
+  const get = (re: RegExp) => ents.filter((e) => re.test(e.field)).map((e) => e.value).filter(Boolean);
+  const company = result.job?.company || get(/company/i)[0] || "";
+  const title = result.job?.title || get(/job title/i)[0] || "";
+  const recruiter = get(/recruiter name/i)[0] || "";
+  const domains = new Set<string>();
+  for (const v of [...get(/email|domain|url|website/i)]) {
+    const d = (v.includes("@") ? v.split("@").pop() : v.replace(/^https?:\/\//, "").split("/")[0])?.toLowerCase().trim();
+    if (d && /\.[a-z]{2,}$/.test(d)) domains.add(d.replace(/^www\./, ""));
+  }
+  const queries: string[] = [];
+  if (company) queries.push(`${company} official website`, `${company} careers internship`, `${company} scam OR fraud OR complaint`);
+  if (company && title) queries.push(`"${company}" "${title}"`);
+  if (recruiter && company) queries.push(`${recruiter} ${company} linkedin`);
+  const sources: Array<{ title: string; url: string; snippet: string; query: string }> = [];
+  const searches = await Promise.all(queries.slice(0, 5).map(async (q) => ({ q, r: await ddgSearch(q) })));
+  for (const s of searches) for (const r of s.r) sources.push({ ...r, query: s.q });
+  const domainChecks: Array<{ domain: string; free_mail: boolean; reachable: boolean; status: number; final_url: string; title: string }> = [];
+  for (const d of Array.from(domains).slice(0, 4)) {
+    const free = FREE_MAIL.test(d);
+    if (free) { domainChecks.push({ domain: d, free_mail: true, reachable: false, status: 0, final_url: "", title: "" }); continue; }
+    try {
+      const r = await fetch("https://" + d, { headers: { "User-Agent": "Mozilla/5.0 (CareerShield verification bot)" }, redirect: "follow" });
+      const html = await r.text();
+      const t = stripHtml((html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] ?? "")).slice(0, 150);
+      domainChecks.push({ domain: d, free_mail: false, reachable: r.ok, status: r.status, final_url: r.url, title: t });
+    } catch {
+      domainChecks.push({ domain: d, free_mail: false, reachable: false, status: 0, final_url: "", title: "" });
+    }
+  }
+  const performed = sources.length > 0 || domainChecks.some((d) => d.status > 0);
+  if (!performed && !company && domains.size === 0) return { performed: false, note: "No company or domain was extracted, so web verification could not run.", findings: [] };
+  if (!performed) return { performed: false, note: "Web research was not available for this analysis. Could not be independently verified.", findings: [] };
+
+  const allowed = new Set([...sources.map((s) => s.url), ...domainChecks.filter((d) => d.final_url).map((d) => d.final_url)]);
+  const json = await callAI({
+    messages: [
+      {
+        role: "system",
+        content: `You classify web verification findings for a recruitment case. Use ONLY the web data provided. Never invent websites, URLs, profiles, listings, complaints or results. Each finding's source_url MUST be copied exactly from the provided data, or "" if the finding comes from absence of data. Statuses: VERIFIED, UNVERIFIED, CONFLICTING, SUSPICIOUS INDICATOR, UNKNOWN. Company existence and opportunity authenticity are SEPARATE findings. Not finding something is UNVERIFIED with finding text "Could not be independently verified." — never call it fake. A company existing never proves the offer is genuine. A free-mail recruiter domain is a SUSPICIOUS INDICATOR only. Search results mentioning scams are only SUSPICIOUS INDICATOR if they clearly concern this exact company/offer. Cover checks: Company existence, Official website, Official careers page, Internship program, Exact job title, Recruiter identity, Recruiter/company association, Email domain, Application domain, Exact campaign/offer, Public reports or warnings.`,
+      },
+      {
+        role: "user",
+        content: `EXTRACTED: company="${company}", job title="${title}", recruiter="${recruiter}", domains=${JSON.stringify(Array.from(domains))}\nDOMAIN CHECKS:\n${JSON.stringify(domainChecks)}\nSEARCH RESULTS:\n${JSON.stringify(sources)}`,
+      },
+    ],
+    tools: [{
+      type: "function",
+      function: {
+        name: "web_verification",
+        parameters: {
+          type: "object",
+          properties: {
+            findings: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  check: { type: "string" },
+                  status: { type: "string", enum: ["VERIFIED", "UNVERIFIED", "CONFLICTING", "SUSPICIOUS INDICATOR", "UNKNOWN"] },
+                  finding: { type: "string" },
+                  source_title: { type: "string" },
+                  source_url: { type: "string" },
+                },
+                required: ["check", "status", "finding", "source_title", "source_url"],
+              },
+            },
+          },
+          required: ["findings"],
+        },
+      },
+    }],
+    tool_choice: { type: "function", function: { name: "web_verification" } },
+  });
+  const a = json?.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
+  const findings = (a ? JSON.parse(a).findings ?? [] : []).map((f: any) => {
+    // Drop any URL that was not actually obtained from research
+    if (f.source_url && !allowed.has(f.source_url)) {
+      return { ...f, source_url: "", source_title: "", status: f.status === "VERIFIED" ? "UNVERIFIED" : f.status, finding: f.status === "VERIFIED" ? "Could not be independently verified." : f.finding };
+    }
+    return f;
+  });
+  return { performed: true, checked_at: new Date().toISOString(), findings };
+}
+
 const reportSchema = {
   type: "object",
   properties: {
@@ -351,6 +464,28 @@ export const analyzeJob = createServerFn({ method: "POST" })
     result.case_id =
       prev?.result?.case_id ||
       "CS-" + Array.from(crypto.getRandomValues(new Uint8Array(4)), (b) => b.toString(16).padStart(2, "0")).join("").toUpperCase().slice(0, 6);
+
+    // Source mapping: keep only references to evidence items that actually exist in this case
+    const total = Math.max(offset + images.length + (data.text || data.url ? 1 : 0), Array.isArray(result.case_evidence) ? result.case_evidence.length : 0);
+    const valid = (n: unknown) => Number.isInteger(n) && (n as number) >= 1 && (n as number) <= total;
+    const fix = (arr: any) => (Array.isArray(arr) ? arr.filter(valid) : arr);
+    for (const e of result.entities ?? []) e.sources = fix(e.sources);
+    for (const t of result.timeline ?? []) t.sources = fix(t.sources);
+    if (result.payment_status) result.payment_status.sources = fix(result.payment_status.sources);
+    for (const c of result.conflicts ?? []) c.values = (c.values ?? []).filter((v: any) => valid(v.source));
+
+    // Case memory: keep analysis history across re-evaluations
+    const evCount = Array.isArray(result.case_evidence) && result.case_evidence.length ? result.case_evidence.length : total;
+    result.analysis_history = [
+      ...(prev?.result?.analysis_history ?? []),
+      { at: new Date().toISOString(), evidence_count: evCount, added: evCount - offset, risk: result.trust?.status ?? "" },
+    ];
+
+    try {
+      result.web_verification = await webVerify(result);
+    } catch {
+      result.web_verification = { performed: false, note: "Web research was not available for this analysis. Could not be independently verified.", findings: [] };
+    }
 
     if (prev && data.caseId) {
       const { error: ue } = await context.supabase
