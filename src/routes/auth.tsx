@@ -7,14 +7,15 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { LegalFooter } from "@/components/LegalFooter";
 import { Brand } from "@/components/Brand";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
-      { title: "Sign in — CareerShield AI" },
+      { title: "Sign in - CareerShield AI" },
       { name: "description", content: "Sign in to save job reports, skill gaps and roadmaps." },
-      { property: "og:title", content: "Sign in — CareerShield AI" },
+      { property: "og:title", content: "Sign in - CareerShield AI" },
       { property: "og:description", content: "Sign in to save job reports, skill gaps and roadmaps." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -64,9 +65,9 @@ function AuthPage() {
   }
 
   return (
-    <div className="grid min-h-screen place-items-center bg-hero px-5">
+    <div className="auth-surface grid min-h-screen place-items-center bg-hero px-5">
       <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-7">
-        <Brand />
+        <Brand legacy />
         <h1 className="mt-6 text-2xl font-bold">{mode === "in" ? "Welcome back" : "Create your account"}</h1>
         <Button variant="secondary" className="mt-6 w-full" onClick={google}>
           Continue with Google
@@ -89,6 +90,7 @@ function AuthPage() {
           {mode === "in" ? "New here? Create an account" : "Already have an account? Sign in"}
         </button>
       </div>
+      <LegalFooter />
     </div>
   );
 }

@@ -3,7 +3,7 @@ import { z } from "zod";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Link2, FileText, Image as ImageIcon, Loader2, ShieldCheck, Upload, X } from "lucide-react";
+import { UiIcon } from "@/components/UiIcon";
 import { analyzeJob } from "@/lib/analyze.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const Route = createFileRoute("/_authenticated/analyze")({
-  head: () => ({ meta: [{ title: "Analyze a job — CareerShield AI" }, { name: "description", content: "Submit a job and your resume for analysis." }] }),
+  head: () => ({ meta: [{ title: "Analyze a job - CareerShield AI" }, { name: "description", content: "Submit a job and your resume for analysis." }, { property: "og:title", content: "Analyze a job - CareerShield AI" }, { property: "og:description", content: "Submit a job and your resume for analysis." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   validateSearch: (s) => z.object({ caseId: z.string().uuid().optional() }).parse(s),
   component: Analyze,
 });
@@ -29,7 +29,7 @@ function readAsDataUrl(f: File) {
 function ImagePick({ value, onChange, label }: { value: string | undefined; onChange: (v?: string) => void; label: string }) {
   return (
     <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-muted/40 p-6 text-center text-sm text-muted-foreground hover:border-primary/50">
-      {value ? <img src={value} alt="" className="max-h-48 rounded-md" /> : <Upload className="h-6 w-6" />}
+      {value ? <img src={value} alt="" className="max-h-48 rounded-md" /> : <UiIcon name="upload" className="h-6 w-6" />}
       {value ? "Click to replace" : label}
       <input
         type="file"
@@ -89,19 +89,19 @@ function Analyze() {
     <div className="mx-auto max-w-3xl">
       <h1 className="text-3xl font-bold">Analyze an opportunity</h1>
       <p className="text-muted-foreground">Job posts, recruiter messages and offer letters all work.</p>
-      {caseId && <p className="mt-3 rounded-lg border border-primary/40 bg-primary/10 px-3 py-2 text-sm">Adding new evidence to an existing case — the report will be re-analyzed using all previous and new evidence.</p>}
+      {caseId && <p className="mt-3 rounded-lg border border-primary/40 bg-primary/10 px-3 py-2 text-sm">Adding new evidence to an existing case - the report will be re-analyzed using all previous and new evidence.</p>}
 
       <section className="mt-8 rounded-2xl border border-border bg-card p-6">
         <h2 className="font-semibold">1. The opportunity</h2>
         <Tabs value={tab} onValueChange={setTab} className="mt-4">
           <TabsList>
-            <TabsTrigger value="text"><FileText className="mr-1.5 h-4 w-4" />Text</TabsTrigger>
-            <TabsTrigger value="url"><Link2 className="mr-1.5 h-4 w-4" />URL</TabsTrigger>
-            <TabsTrigger value="image"><ImageIcon className="mr-1.5 h-4 w-4" />Screenshot</TabsTrigger>
+            <TabsTrigger value="text"><UiIcon name="document" className="mr-1.5 h-4 w-4" />Text</TabsTrigger>
+            <TabsTrigger value="url"><UiIcon name="link" className="mr-1.5 h-4 w-4" />URL</TabsTrigger>
+            <TabsTrigger value="image"><UiIcon name="image" className="mr-1.5 h-4 w-4" />Screenshot</TabsTrigger>
           </TabsList>
           <TabsContent value="url" className="space-y-2">
             <Input placeholder="https://company.com/careers/job/123" value={url} onChange={(e) => setUrl(e.target.value)} />
-            <p className="text-xs text-muted-foreground">Some sites (like LinkedIn) hide content behind login — paste the description below too for best results.</p>
+            <p className="text-xs text-muted-foreground">Some sites (like LinkedIn) hide content behind login - paste the description below too for best results.</p>
           </TabsContent>
           <TabsContent value="image" className="space-y-3">
             {images.length > 0 && (
@@ -116,7 +116,7 @@ function Analyze() {
                       className="absolute right-1.5 top-1.5 rounded-full bg-background/90 p-1 hover:text-destructive"
                       onClick={() => setImages((p) => p.filter((_, j) => j !== i))}
                     >
-                      <X className="h-3.5 w-3.5" />
+                      <UiIcon name="close" className="h-3.5 w-3.5" />
                     </button>
                   </div>
                 ))}
@@ -124,7 +124,7 @@ function Analyze() {
             )}
             {images.length < 10 && (
               <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-muted/40 p-6 text-center text-sm text-muted-foreground hover:border-primary/50">
-                <Upload className="h-6 w-6" />
+                <UiIcon name="upload" className="h-6 w-6" />
                 {images.length ? "Add more images to this case" : "Upload screenshots of the job, recruiter, emails, payment requests… (multiple allowed)"}
                 <input
                   type="file"
@@ -177,7 +177,7 @@ function Analyze() {
       </section>
 
       <Button size="lg" className="mt-6 w-full shadow-glow" disabled={busy} onClick={submit}>
-        {busy ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Analyzing evidence & skills…</>) : (<><ShieldCheck className="mr-2 h-4 w-4" />Generate CareerShield report</>)}
+        {busy ? (<><UiIcon name="loading" className="mr-2 h-4 w-4 animate-spin" />Analyzing evidence & skills…</>) : (<><UiIcon name="shield" className="mr-2 h-4 w-4" />Generate CareerShield report</>)}
       </Button>
     </div>
   );

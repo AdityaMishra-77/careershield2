@@ -162,3 +162,77 @@
   .no-print { display: none !important; }
   body { background: white; color: black; }
 }
+
+/* Presentation-only boundary. Legacy Coach and account UI retain original tokens. */
+.visual-cleanup {
+  --background: oklch(0.18 0.008 250);
+  --foreground: oklch(0.91 0.005 250);
+  --card: oklch(0.225 0.009 250);
+  --card-foreground: var(--foreground);
+  --primary: oklch(0.69 0.075 185);
+  --primary-foreground: oklch(0.18 0.008 250);
+  --secondary: oklch(0.29 0.012 250);
+  --secondary-foreground: var(--foreground);
+  --muted: oklch(0.28 0.01 250);
+  --muted-foreground: oklch(0.73 0.012 250);
+  --accent: oklch(0.32 0.035 185);
+  --accent-foreground: var(--foreground);
+  --success: oklch(0.69 0.09 155);
+  --warning: oklch(0.74 0.095 80);
+  --info: oklch(0.7 0.065 230);
+  --destructive: oklch(0.66 0.145 25);
+  --ring: oklch(0.69 0.075 185);
+  --font-display: "DM Sans", sans-serif;
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+.visual-cleanup,
+.visual-cleanup :where(*):not(:where(#coach, #coach *, .protected-ui, .protected-ui *)) {
+  box-shadow: none !important;
+  text-shadow: none !important;
+  backdrop-filter: none !important;
+  border-radius: 0 !important;
+  transition: none !important;
+  letter-spacing: 0 !important;
+}
+
+.visual-cleanup .bg-hero,
+.visual-cleanup.bg-hero,
+.auth-surface.bg-hero {
+  background-image: none;
+}
+
+.visual-cleanup :where(h1, h2, h3, h4):not(:where(#coach *, .protected-ui *)) {
+  font-family: "DM Sans", sans-serif;
+}
+
+.visual-cleanup :where(.border-l):not(:where(#coach *, .protected-ui *)) {
+  border-left-width: 0;
+}
+
+#coach,
+.protected-ui {
+  --background: oklch(0.129 0.042 264.695);
+  --foreground: oklch(0.984 0.003 247.858);
+  --card: oklch(0.208 0.042 265.755);
+  --card-foreground: oklch(0.984 0.003 247.858);
+  --primary: oklch(0.929 0.013 255.508);
+  --primary-foreground: oklch(0.208 0.042 265.755);
+  --secondary: oklch(0.279 0.041 260.031);
+  --secondary-foreground: oklch(0.984 0.003 247.858);
+  --muted: oklch(0.279 0.041 260.031);
+  --muted-foreground: oklch(0.704 0.04 256.788);
+  --accent: oklch(0.279 0.041 260.031);
+  --accent-foreground: oklch(0.984 0.003 247.858);
+  --success: oklch(0.78 0.16 155);
+  --warning: oklch(0.82 0.15 80);
+  --info: oklch(0.75 0.12 230);
+  --destructive: oklch(0.704 0.191 22.216);
+  --ring: oklch(0.551 0.027 264.364);
+  --font-display: "Space Grotesk", sans-serif;
+}
+
+@media print {
+  .visual-cleanup { background-color: transparent; color: inherit; }
+}

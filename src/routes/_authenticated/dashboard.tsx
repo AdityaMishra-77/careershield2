@@ -1,13 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2 } from "lucide-react";
+import { UiIcon } from "@/components/UiIcon";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { TrustBadge } from "@/components/TrustBadge";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
-  head: () => ({ meta: [{ title: "Dashboard — CareerShield AI" }, { name: "description", content: "Your saved job reports and learning progress." }] }),
+  head: () => ({ meta: [{ title: "Dashboard - CareerShield AI" }, { name: "description", content: "Your saved job reports and learning progress." }, { property: "og:title", content: "Dashboard - CareerShield AI" }, { property: "og:description", content: "Your saved job reports and learning progress." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: Dashboard,
 });
 
@@ -41,7 +41,7 @@ function Dashboard() {
         </div>
         <Button asChild>
           <Link to="/analyze">
-            <Plus className="mr-1 h-4 w-4" /> New analysis
+            <UiIcon name="plus" className="mr-1 h-4 w-4" /> New analysis
           </Link>
         </Button>
       </div>
@@ -79,7 +79,7 @@ function Dashboard() {
                 <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
                   {new Date(a.created_at).toLocaleDateString()}
                   <button onClick={() => remove(a.id)} className="relative z-10 rounded p-1 hover:text-destructive" aria-label="Delete">
-                    <Trash2 className="h-4 w-4" />
+                    <UiIcon name="trash" className="h-4 w-4" />
                   </button>
                 </div>
               </div>
