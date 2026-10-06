@@ -65,7 +65,7 @@ function AuthPage() {
   }
 
   return (
-    <div className="grid min-h-screen place-items-center bg-hero px-5">
+    <div className="auth-surface grid min-h-screen place-items-center bg-hero px-5">
       <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-7">
         <Brand legacy />
         <h1 className="mt-6 text-2xl font-bold">{mode === "in" ? "Welcome back" : "Create your account"}</h1>
