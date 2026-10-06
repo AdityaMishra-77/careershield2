@@ -11,3 +11,6 @@
 
 - AI analysis and coach run in server functions in src/lib/analyze.functions.ts via the Lovable AI Gateway with tool-calling for structured reports — keeps keys server-side and output typed.
 - Each report is one row in `analyses` (result + progress as JSON) scoped by RLS to the owner — simple, user-isolated storage.
+
+- Scope visual cleanup to `.visual-cleanup`; restore legacy tokens and typography in `#coach` and `.protected-ui`, and never modify Coach/auth service logic, because these areas are explicitly immutable.
+- Keep legal information in public `/terms` and `/privacy` routes with shared footer links so policies remain accessible without authentication.

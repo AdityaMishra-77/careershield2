@@ -3,7 +3,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, CheckCircle2, AlertTriangle, XCircle, MinusCircle, Download, Send, Loader2, ExternalLink, Hammer } from "lucide-react";
+import { Send, Loader2 } from "lucide-react";
+import { UiIcon } from "@/components/UiIcon";
 import { supabase } from "@/integrations/supabase/client";
 import { coachChat } from "@/lib/analyze.functions";
 import { Button } from "@/components/ui/button";
@@ -12,15 +13,15 @@ import { TrustBadge } from "@/components/TrustBadge";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/report/$id")({
-  head: () => ({ meta: [{ title: "Report — CareerShield AI" }, { name: "description", content: "Job trust evidence, skill gaps and learning roadmap." }] }),
+  head: () => ({ meta: [{ title: "Report - CareerShield AI" }, { name: "description", content: "Job trust evidence, skill gaps and learning roadmap." }, { property: "og:title", content: "Report - CareerShield AI" }, { property: "og:description", content: "Job trust evidence, skill gaps and learning roadmap." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: Report,
 });
 
 const levelIcon = {
-  positive: <CheckCircle2 className="h-4 w-4 text-success" />,
-  neutral: <MinusCircle className="h-4 w-4 text-muted-foreground" />,
-  caution: <AlertTriangle className="h-4 w-4 text-warning" />,
-  risk: <XCircle className="h-4 w-4 text-destructive" />,
+  positive: <UiIcon name="positive" className="h-4 w-4 text-success" />,
+  neutral: <UiIcon name="neutral" className="h-4 w-4 text-muted-foreground" />,
+  caution: <UiIcon name="caution" className="h-4 w-4 text-warning" />,
+  risk: <UiIcon name="risk" className="h-4 w-4 text-destructive" />,
 } as Record<string, React.ReactNode>;
 
 const matchStyle: Record<string, string> = {
@@ -83,10 +84,10 @@ function Report() {
     <div className="space-y-5">
       <div className="no-print flex items-center justify-between">
         <Link to="/dashboard" className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="h-4 w-4" /> Dashboard
+          <UiIcon name="back" className="h-4 w-4" /> Dashboard
         </Link>
         <Button variant="secondary" size="sm" onClick={() => window.print()}>
-          <Download className="mr-1.5 h-4 w-4" /> Download report
+          <UiIcon name="download" className="mr-1.5 h-4 w-4" /> Download report
         </Button>
       </div>
 
@@ -108,15 +109,15 @@ function Report() {
       </header>
 
       {(r.case_evidence?.length > 0 || r.entities?.length > 0 || r.conflicts?.length > 0 || r.payment_status || r.timeline?.length > 0) && (
-        <Card title={`Case ${r.case_id ?? ""} — combined evidence`}>
+        <Card title={`Case ${r.case_id ?? ""} - combined evidence`}>
           {r.case_evidence?.length > 0 && (
             <ul className="mb-4 space-y-1 text-sm">
-              {r.case_evidence.map((e: any) => <li key={e.number}><b>Evidence #{e.number}</b> — {e.kind}</li>)}
+              {r.case_evidence.map((e: any) => <li key={e.number}><b>Evidence #{e.number}</b> - {e.kind}</li>)}
             </ul>
           )}
           {r.payment_status && (
             <p className="mb-4 flex gap-2 text-sm">
-              {r.payment_status.state === "No Payment Request Detected In Submitted Evidence" ? <MinusCircle className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" /> : <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />}
+              {r.payment_status.state === "No Payment Request Detected In Submitted Evidence" ? <UiIcon name="neutral" className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" /> : <UiIcon name="risk" className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />}
               <span><b>{r.payment_status.state}.</b> {r.payment_status.detail}
                 {r.payment_status.amount && <> <b>Payment:</b> {r.payment_status.amount}.</>}
                 {r.payment_status.reason && <> <b>Reason:</b> {r.payment_status.reason}.</>}
@@ -139,7 +140,7 @@ function Report() {
           {r.conflicts?.length > 0 && (
             <ul className="mb-4 space-y-2">
               {r.conflicts.map((c: any, i: number) => (
-                <li key={i} className="flex gap-2 text-sm"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
+                <li key={i} className="flex gap-2 text-sm"><UiIcon name="caution" className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
                   <span><b>{c.message}</b> {(c.values ?? []).map((v: any) => `${v.value} (Evidence #${v.source})`).join(" vs ")}</span></li>
               ))}
             </ul>
@@ -160,7 +161,7 @@ function Report() {
                 {(r.web_verification.findings ?? []).map((f: any, i: number) => (
                   <li key={i} className="text-sm">
                     <span className="text-xs font-semibold text-primary">{f.status}</span> · <b>{f.check}:</b> {f.finding}
-                    {f.source_url && <span className="block truncate text-xs text-muted-foreground">Source: {f.source_title || new URL(f.source_url).hostname} — <a href={f.source_url} target="_blank" rel="noreferrer noopener" className="underline">{f.source_url}</a></span>}
+                    {f.source_url && <span className="block truncate text-xs text-muted-foreground">Source: {f.source_title || new URL(f.source_url).hostname} - <a href={f.source_url} target="_blank" rel="noreferrer noopener" className="underline">{f.source_url}</a></span>}
                   </li>
                 ))}
               </ul>
@@ -172,7 +173,7 @@ function Report() {
               <p className="mb-1 text-primary">New evidence added. CareerShield re-evaluated this case using {r.analysis_history[r.analysis_history.length - 1].evidence_count} pieces of evidence.</p>
               <ul className="space-y-1 text-xs text-muted-foreground">
                 {r.analysis_history.map((h: any, i: number) => (
-                  <li key={i}>{new Date(h.at).toLocaleString()} — {h.evidence_count} evidence item(s){i > 0 && h.added > 0 ? ` (+${h.added} new)` : ""}{h.risk ? ` · ${h.risk}` : ""}</li>
+                  <li key={i}>{new Date(h.at).toLocaleString()} - {h.evidence_count} evidence item(s){i > 0 && h.added > 0 ? ` (+${h.added} new)` : ""}{h.risk ? ` · ${h.risk}` : ""}</li>
                 ))}
               </ul>
             </div>
@@ -251,7 +252,7 @@ function Report() {
                 <tr key={i} className="border-t border-border align-top">
                   <td className="py-2.5 pr-3 font-medium">{s.name}{!s.required && <span className="ml-1 text-xs text-muted-foreground">(preferred)</span>}</td>
                   <td className="py-2.5 pr-3"><span className={cn("rounded-full px-2 py-0.5 text-xs capitalize", matchStyle[s.match])}>{s.match}</span></td>
-                  <td className="py-2.5 pr-3">{s.priority === "None" ? "—" : s.priority}</td>
+                  <td className="py-2.5 pr-3">{s.priority === "None" ? "-" : s.priority}</td>
                   <td className="py-2.5 text-muted-foreground">{s.reason}</td>
                 </tr>
               ))}
@@ -261,7 +262,7 @@ function Report() {
       </Card>
 
       <Card title="Your learning roadmap">
-        {roadmap.length === 0 ? <p className="text-sm text-muted-foreground">No gaps found — you're a strong match!</p> : (
+        {roadmap.length === 0 ? <p className="text-sm text-muted-foreground">No gaps found - you're a strong match!</p> : (
           <ol className="relative space-y-6 border-l border-border pl-6">
             {roadmap.map((s: any, i: number) => {
               const st = progress[s.skill] ?? "Not Started";
@@ -280,11 +281,11 @@ function Report() {
                   <div className="mt-2 flex flex-wrap gap-2">
                     {(s.resources ?? []).map((res: any, j: number) => (
                       <a key={j} href={res.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs hover:border-primary/60">
-                        {res.title} <span className="text-muted-foreground">· {res.type}</span> <ExternalLink className="h-3 w-3" />
+                        {res.title} <span className="text-muted-foreground">· {res.type}</span> <UiIcon name="external" className="h-3 w-3" />
                       </a>
                     ))}
                   </div>
-                  {s.project && <p className="mt-2 flex gap-2 text-sm"><Hammer className="mt-0.5 h-4 w-4 shrink-0 text-primary" /><span><b>Project:</b> {s.project}</span></p>}
+                  {s.project && <p className="mt-2 flex gap-2 text-sm"><UiIcon name="project" className="mt-0.5 h-4 w-4 shrink-0 text-primary" /><span><b>Project:</b> {s.project}</span></p>}
                   {s.practice?.length > 0 && <ul className="mt-1 list-disc pl-11 text-sm text-muted-foreground">{s.practice.map((p: string, k: number) => <li key={k}>{p}</li>)}</ul>}
                 </li>
               );
